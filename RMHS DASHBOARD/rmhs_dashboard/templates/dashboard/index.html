@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - RMHS Dashboard{% endblock %}
+
+{% block page_title %}Main Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Date Filter</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="date" class="form-label">Select Date</label>
+                        <input type="date" class="form-control" id="date" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="shift" class="form-label">Select Shift</label>
+                        <select class="form-select" id="shift" name="shift">
+                            <option value="">All Shifts</option>
+                            <option value="A" {% if selected_shift == 'A' %}selected{% endif %}>Shift A (6:00 AM - 2:00 PM)</option>
+                            <option value="B" {% if selected_shift == 'B' %}selected{% endif %}>Shift B (2:00 PM - 10:00 PM)</option>
+                            <option value="C" {% if selected_shift == 'C' %}selected{% endif %}>Shift C (10:00 PM - 6:00 AM)</option>
+                            <option value="G" {% if selected_shift == 'G' %}selected{% endif %}>General Shift (9:00 AM - 6:30 PM)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Navigation Buttons -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <a href="{% url 'operations:area1_list' %}" class="area-btn area-1 d-block text-decoration-none">
+            <i class="fas fa-industry fa-3x mb-3"></i>
+            <h4>Area-1 Operations</h4>
+            <p class="mb-0">Reclaiming, Feeding to BF/SMS, Receiving from BF</p>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{% url 'operations:area23_list' %}" class="area-btn area-2-3 d-block text-decoration-none">
+            <i class="fas fa-industry fa-3x mb-3"></i>
+            <h4>Area-2 & 3 Operations</h4>
+            <p class="mb-0">Feeding, Receiving, Crushing, Base Mix Handling</p>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{% url 'delays:list' %}" class="area-btn delays d-block text-decoration-none">
+            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+            <h4>Delay Reports</h4>
+            <p class="mb-0">Mechanical, Electrical, Operational Delays</p>
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <a href="{% url 'rakes:list' %}" class="area-btn rakes d-block text-decoration-none">
+            <i class="fas fa-train fa-3x mb-3"></i>
+            <h4>Rake Completion Reports</h4>
+            <p class="mb-0">Material & Numbers of Rakes</p>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a href="{% url 'maintenance:list' %}" class="area-btn maintenance d-block text-decoration-none">
+            <i class="fas fa-tools fa-3x mb-3"></i>
+            <h4>Maintenance Activities</h4>
+            <p class="mb-0">Mechanical/Electrical Maintenance, Spares</p>
+        </a>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Material Handling Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="materialChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Delay Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="delayChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Sections -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Operational Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Activity</th>
+                                <th>Quantity (MT)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Total Feeding</td>
+                                <td>{{ total_feeding|default:"0" }}</td>
+                                <td>
+                                    {% if total_feeding > target_feeding %}
+                                        <span class="badge bg-success">Above Target</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Below Target</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Total Receiving</td>
+                                <td>{{ total_receiving|default:"0" }}</td>
+                                <td>
+                                    {% if total_receiving > target_receiving %}
+                                        <span class="badge bg-success">Above Target</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Below Target</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Total Crushing</td>
+                                <td>{{ total_crushing|default:"0" }}</td>
+                                <td>
+                                    {% if total_crushing > target_crushing %}
+                                        <span class="badge bg-success">Above Target</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Below Target</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Total Reclaiming</td>
+                                <td>{{ total_reclaiming|default:"0" }}</td>
+                                <td>
+                                    {% if total_reclaiming > target_reclaiming %}
+                                        <span class="badge bg-success">Above Target</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Below Target</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Rake & Maintenance Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6 class="fw-bold">Rakes Completed Today</h6>
+                    <p>Total Rakes: {{ total_rakes|default:"0" }}</p>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ rake_percentage|default:'0' }}%" aria-valuenow="{{ rake_percentage|default:'0' }}" aria-valuemin="0" aria-valuemax="100">{{ rake_percentage|default:'0' }}%</div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h6 class="fw-bold">Delays Today</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Mechanical Delays:</span>
+                        <span>{{ mechanical_delays|default:"0" }} hrs</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Electrical Delays:</span>
+                        <span>{{ electrical_delays|default:"0" }} hrs</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Operational Delays:</span>
+                        <span>{{ operational_delays|default:"0" }} hrs</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <h6 class="fw-bold">Maintenance Activities</h6>
+                    <p>{{ maintenance_count|default:"0" }} maintenance activities recorded today</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Material Handling Chart
+    const materialCtx = document.getElementById('materialChart').getContext('2d');
+    const materialChart = new Chart(materialCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Feeding', 'Receiving', 'Crushing', 'Reclaiming'],
+            datasets: [{
+                label: 'Quantity (MT)',
+                data: [
+                    {{ total_feeding|default:"0" }}, 
+                    {{ total_receiving|default:"0" }}, 
+                    {{ total_crushing|default:"0" }}, 
+                    {{ total_reclaiming|default:"0" }}
+                ],
+                backgroundColor: [
+                    'rgba(13, 110, 253, 0.7)',
+                    'rgba(25, 135, 84, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(220, 53, 69, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(13, 110, 253, 1)',
+                    'rgba(25, 135, 84, 1)',
+                    'rgba(255, 193, 7, 1)',
+                    'rgba(220, 53, 69, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Quantity (MT)'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Delay Chart
+    const delayCtx = document.getElementById('delayChart').getContext('2d');
+    const delayChart = new Chart(delayCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Mechanical', 'Electrical', 'Operational'],
+            datasets: [{
+                data: [
+                    {{ mechanical_delays|default:"0" }}, 
+                    {{ electrical_delays|default:"0" }}, 
+                    {{ operational_delays|default:"0" }}
+                ],
+                backgroundColor: [
+                    'rgba(220, 53, 69, 0.7)',
+                    'rgba(13, 202, 240, 0.7)',
+                    'rgba(255, 193, 7, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(220, 53, 69, 1)',
+                    'rgba(13, 202, 240, 1)',
+                    'rgba(255, 193, 7, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Delay Distribution (Hours)'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

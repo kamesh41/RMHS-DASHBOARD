@@ -1,0 +1,8 @@
+Django==4.2.10
+django-crispy-forms==2.1.0
+crispy-bootstrap5==0.7
+Pillow==10.1.0
+django-filter==23.5
+django-tables2==2.6.0
+django-bootstrap-datepicker-plus==5.0.4
+django-chartjs==2.3.0 
